@@ -33,6 +33,8 @@ public class TouchDetector : MonoBehaviour {
 
 	void OnAnimatorIK (int layerIndex)
 	{
+		if (isButtonTouched) return;
+
 		Vector2 rightHandPosition = Camera.main.WorldToScreenPoint(animator.GetIKPosition(AvatarIKGoal.RightHand));
 		Vector2 leftHandPosition  = Camera.main.WorldToScreenPoint(animator.GetIKPosition(AvatarIKGoal.LeftHand));
 
@@ -42,14 +44,13 @@ public class TouchDetector : MonoBehaviour {
 		} else if (IsTouchPrevGraphButton(rightHandPosition, leftHandPosition)) {
 			isButtonTouched = true;
 			clickButton(prevButton);
-		} else {
-			isButtonTouched = false;
 		}
+
+		if (isButtonTouched) Invoke("EnableTouch", 1);
 	}
 
 	private bool IsTouchNextGraphButton (Vector2 rightHandPosition, Vector2 leftHandPosition)
 	{
-		if (isButtonTouched) return false;
 		if (IsPositionInRange(rightHandPosition, true)) return true;
 		if (IsPositionInRange(leftHandPosition, true)) return true;
 
@@ -58,7 +59,6 @@ public class TouchDetector : MonoBehaviour {
 
 	private bool IsTouchPrevGraphButton (Vector2 rightHandPosition, Vector2 leftHandPosition)
 	{
-		if (isButtonTouched) return false;
 		if (IsPositionInRange(rightHandPosition, false)) return true;
 		if (IsPositionInRange(leftHandPosition, false)) return true;
 
@@ -77,10 +77,8 @@ public class TouchDetector : MonoBehaviour {
 			rightEndPosition = prevButtonTopRightEnd;
 		}
 
-		if (targetPosition.x >= leftEndPosition.x &&
-			targetPosition.y >= leftEndPosition.y &&
-			targetPosition.x <= rightEndPosition.x &&
-			targetPosition.y <= rightEndPosition.y) {
+		if (targetPosition.x >= leftEndPosition.x  && targetPosition.y >= leftEndPosition.y &&
+			targetPosition.x <= rightEndPosition.x && targetPosition.y <= rightEndPosition.y) {
 
 			return true;
 		}
@@ -96,5 +94,10 @@ public class TouchDetector : MonoBehaviour {
 			functor:   ExecuteEvents.pointerClickHandler
 		);
 		EventSystem.current.SetSelectedGameObject(null);
+	}
+
+	private void EnableTouch ()
+	{
+		isButtonTouched = false;
 	}
 }
