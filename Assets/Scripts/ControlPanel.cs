@@ -9,6 +9,10 @@ public class ControlPanel : MonoBehaviour
 		graphicSwitcher = GameObject.Find("ScriptLoader").GetComponent<GraphicSwitcher>();
 	}
 
+	void Update ()
+	{
+	}
+
 	public void ButtonClick ()
 	{
 		switch (transform.name) {

@@ -16,8 +16,6 @@ public class PositionUpdater : MonoBehaviour
 	{
 		animator = gameObject.GetComponent<Animator>();
 		animator.SetInteger("animation", 19);
-
-//		LessonRecorder lessonRecorder = GameObject.Find("ScriptLoader").GetComponent<LessonRecorder>();
 	}
 
 	void OnAnimatorIK (int layerIndex)
