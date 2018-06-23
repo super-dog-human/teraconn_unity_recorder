@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,61 +10,37 @@ public class PositionUpdater : MonoBehaviour
 	private const int poseCanvasHeight = 480;
 	private const float cameraZIndex = 15.0f;
 	private const float accuracyThreshold = 0.3f;
-
-	private bool isReady = false;
 	private PoseVector currentPoseVector;
 
 	void Start ()
 	{
 		animator = gameObject.GetComponent<Animator>();
 		animator.SetInteger("animation", 19);
+
+//		LessonRecorder lessonRecorder = GameObject.Find("ScriptLoader").GetComponent<LessonRecorder>();
 	}
 
-	void OnAnimatorIK(int layerIndex)
+	void OnAnimatorIK (int layerIndex)
 	{
-		if (!isReady) return;
+		if (currentPoseVector == null) return;
 
-		updateCoreBodyPosition();
-		updateHeadPosition();
-		updateArmsPosition();
+		UpdateCoreBodyPosition();
+		UpdateHeadPosition();
+		UpdateArmsPosition();
 	}
 
-	void setCanvasSize(string jsonString)
+	void SetCanvasSize (string jsonString)
 	{
 //		CanvasSize canvas = JsonUtility.FromJson<CanvasSize>(jsonString);
 	}
 
-	void updatePosition(string jsonString)
+	void UpdatePosition(string jsonString)
 	{
 		Pose pose = JsonUtility.FromJson<Pose>(jsonString);
-		if (isReady) {
-			currentPoseVector = new PoseVector(pose);
-		} else if (isInitialPoseScoreGood(pose)) {
-			isReady = true;
-			currentPoseVector = new PoseVector(pose);
-		}
+		currentPoseVector = new PoseVector(pose);
 	}
 
-	private bool isInitialPoseScoreGood(Pose pose)
-	{
-		bool isGoodScore = true;
-		string[] coreBodyKeypoints = {
-			"nose", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist"
-		};
-		foreach (FieldInfo field in pose.GetType().GetFields())
-		{
-			if (!(coreBodyKeypoints.Contains(field.Name))) continue;
-
-			Keypoint keypoint = (Keypoint)field.GetValue(pose);
-			if (keypoint.score < 0.5f) {
-				isGoodScore = false;
-				break;
-			}
-		};
-		return isGoodScore;
-	}
-
-	private void updateCoreBodyPosition()
+	private void UpdateCoreBodyPosition ()
 	{
 		Vector3 rightShoulderPosition = currentPoseVector.rightShoulder.position;
 		rightShoulderPosition.z = cameraZIndex;
@@ -81,10 +55,10 @@ public class PositionUpdater : MonoBehaviour
 		transform.position = Vector3.Lerp(transform.position, position, Time.deltaTime * 2);
 	}
 
-	private void updateHeadPosition()
+	private void UpdateHeadPosition ()
 	{
-		if (!isEyesAndNoseScoreGood(currentPoseVector)) return;
-		if (!isLeftOrRightEarScoreGood(currentPoseVector)) return;
+		if (!IsEyesAndNoseScoreGood(currentPoseVector)) return;
+		if (!IsLeftOrRightEarScoreGood(currentPoseVector)) return;
 
 		float leftLength = (currentPoseVector.leftEar.position - currentPoseVector.leftEye.position).magnitude;
 		float rightLength = (currentPoseVector.rightEar.position - currentPoseVector.rightEye.position).magnitude;
@@ -109,7 +83,7 @@ public class PositionUpdater : MonoBehaviour
 		animator.SetLookAtPosition(lookAtPosition);
 	}
 
-	private bool isEyesAndNoseScoreGood(PoseVector poseVector)
+	private bool IsEyesAndNoseScoreGood (PoseVector poseVector)
 	{
 		bool isGoodScore = true;
 		string[] faceKeypoints = { "nose", "leftEye", "rightEye" };
@@ -118,7 +92,8 @@ public class PositionUpdater : MonoBehaviour
 			if (!(faceKeypoints.Contains(field.Name))) continue;
 
 			Keypoint keypoint = (Keypoint)field.GetValue(poseVector);
-			if (keypoint.score < accuracyThreshold) {
+			if (keypoint.score < accuracyThreshold)
+			{
 				isGoodScore = false;
 				break;
 			}
@@ -126,23 +101,23 @@ public class PositionUpdater : MonoBehaviour
 		return isGoodScore;
 	}
 
-	private bool isLeftOrRightEarScoreGood(PoseVector poseVector) {
+	private bool IsLeftOrRightEarScoreGood (PoseVector poseVector) {
 		if (poseVector.leftEar.score >= accuracyThreshold)  { return true; }
 		if (poseVector.rightEar.score >= accuracyThreshold) { return true; }
 		return false;
 	}
 
-	private void updateArmsPosition()
+	private void UpdateArmsPosition()
 	{
 		// swap the left and right
-		setWorldElbowPosition(currentPoseVector.leftElbow, AvatarIKHint.RightElbow);
-		setWorldHandPosition(currentPoseVector.leftElbow, currentPoseVector.leftWrist, AvatarIKGoal.RightHand);
+		SetWorldElbowPosition(currentPoseVector.leftElbow, AvatarIKHint.RightElbow);
+		SetWorldHandPosition(currentPoseVector.leftElbow, currentPoseVector.leftWrist, AvatarIKGoal.RightHand);
 
-		setWorldElbowPosition(currentPoseVector.rightElbow, AvatarIKHint.LeftElbow);
-		setWorldHandPosition(currentPoseVector.rightElbow, currentPoseVector.rightWrist, AvatarIKGoal.LeftHand);
+		SetWorldElbowPosition(currentPoseVector.rightElbow, AvatarIKHint.LeftElbow);
+		SetWorldHandPosition(currentPoseVector.rightElbow, currentPoseVector.rightWrist, AvatarIKGoal.LeftHand);
 	}
 
-	private void setWorldElbowPosition(PartVector part, AvatarIKHint avatarPart)
+	private void SetWorldElbowPosition(PartVector part, AvatarIKHint avatarPart)
 	{
 		if (part.score < accuracyThreshold) return;
 
@@ -153,22 +128,26 @@ public class PositionUpdater : MonoBehaviour
 
 		animator.SetIKHintPositionWeight(avatarPart, 1);
 		animator.SetIKHintPosition(avatarPart, worldPosition);
+
+//		lessonRecorder.RecordPose("");
 	}
 
-	private void setWorldHandPosition(PartVector elbowPart, PartVector wristPart, AvatarIKGoal avatarPart)
+	private void SetWorldHandPosition (PartVector elbowPart, PartVector wristPart, AvatarIKGoal avatarPart)
 	{
 		if (wristPart.score < accuracyThreshold) return;
 
-		Vector3 position = handPosition(elbowPart.position, wristPart.position);
+		Vector3 position = HandPosition(elbowPart.position, wristPart.position);
 		position.z = cameraZIndex;
 		Vector3 worldPosition = Camera.main.ScreenToWorldPoint(position);
 		worldPosition.z = animator.GetIKPosition(avatarPart).z;
 
 		animator.SetIKPositionWeight(avatarPart, 1);
 		animator.SetIKPosition(avatarPart, worldPosition);
+
+//		lessonRecorder.RecordPose("");
 	}
 
-	private Vector3 handPosition(Vector3 elbowPosition, Vector3 wristPosition)
+	private Vector3 HandPosition (Vector3 elbowPosition, Vector3 wristPosition)
 	{
 		float armLength = (wristPosition - elbowPosition).magnitude;
 		Vector3 handVector = (wristPosition - elbowPosition).normalized * armLength * 0.5f;
