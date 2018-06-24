@@ -1,9 +1,9 @@
 ﻿using UnityEngine;
 
-public class FPSIndicator : MonoBehaviour {
+public class FPSIndicator : MonoBehaviour
+{
     [SerializeField]
-    private float m_updateInterval = 0.5f;
-
+    private const float m_updateInterval = 0.5f;
     private float m_accum;
     private int m_frames;
     private float m_timeleft;
@@ -23,10 +23,12 @@ public class FPSIndicator : MonoBehaviour {
     }
 
     private void OnGUI() {
-        GUIStyle guiStyle = new GUIStyle();
         GUIStyleState styleState = new GUIStyleState();
         styleState.textColor = Color.black;
+
+        GUIStyle guiStyle = new GUIStyle();
         guiStyle.normal = styleState;
+
         GUILayout.Label("FPS: " + m_fps.ToString( "f2" ), guiStyle);
     }
 }

@@ -32,7 +32,7 @@ limitations under the License. -->
     <script>
       const gameInstance = UnityLoader.instantiate("gameContainer", "%UNITY_WEBGL_BUILD_URL%", {onProgress: UnityProgress});
       function UnityProgress(gameInstance, progress) {
-        if (progress == 1) { new PoseDetector.start(gameInstance); }
+        if (progress == 1) { new PoseDetector.setGameInstance(gameInstance); }
       }
     </script>
     <style>
