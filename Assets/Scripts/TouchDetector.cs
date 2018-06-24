@@ -88,16 +88,17 @@ public class TouchDetector : MonoBehaviour {
 
 	private void clickButton (GameObject target)
 	{
+		EventSystem.current.SetSelectedGameObject(target);
 		ExecuteEvents.Execute(
 			target:    target,
 			eventData: new PointerEventData(EventSystem.current),
 			functor:   ExecuteEvents.pointerClickHandler
 		);
-		EventSystem.current.SetSelectedGameObject(null);
 	}
 
 	private void EnableTouch ()
 	{
+		EventSystem.current.SetSelectedGameObject(null);
 		isButtonTouched = false;
 	}
 }
