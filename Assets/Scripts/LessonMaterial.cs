@@ -1,20 +1,26 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using System.IO;
+using UnityEngine;
+using UnityEngine.UI;
+using UniRx;
 
-public class LessonMaterial : MonoBehaviour
-{
-    public bool isLoadCompleted = false;
+public class LessonMaterial : MonoBehaviour {
     public List<Sprite> graphics;
+    public List<string> graphicIds;
 
-    private string materialPath;
-    private string lessonId;
-    private const string jsonFileName = "lesson_material.json";
-    private Material material;
+    string materialPath;
+    string lessonId;
+    const string jsonFileName = "lesson_material.json";
+    Material material;
+    Subject<Unit> loadSubject = new Subject<Unit>();
 
-    void Start()
-    {
+    public IObservable<Unit> OnLoadCompleted {
+        get { return loadSubject; }
+    }
+
+    void Start () {
         lessonId     = Application.absoluteURL.Split("?"[0])[1];
         materialPath = Path.Combine(Application.persistentDataPath, lessonId);
 
@@ -22,55 +28,50 @@ public class LessonMaterial : MonoBehaviour
         StartCoroutine("DownloadMaterial", materialUrl);
     }
 
-    private IEnumerator DownloadMaterial(string url)
-    {
-        using (WWW www = new WWW(url))
-        {
+    IEnumerator DownloadMaterial (string url) {
+        using (WWW www = new WWW(url)) {
             yield return www;
 
-            if (www.error.Length > 0)
-            {
-                isLoadCompleted = true;
+            if (www.error.Length > 0) {
                 yield break;
             }
 
-            System.IO.MemoryStream zipStream = new System.IO.MemoryStream(www.bytes);
-            ZipUtility.UnzipFromStream(zipStream, materialPath);
-
-            string jsonPath = Path.Combine(materialPath, "materials", jsonFileName);
-            string jsonText = System.IO.File.ReadAllText(jsonPath);
-            material = JsonUtility.FromJson<Material>(jsonText);
-
+            UnzipFromBytes(www.bytes);
             LoadGraphics();
-            isLoadCompleted = true;
 
-            Debug.Log("load completed.");
+            loadSubject.OnNext(Unit.Default);
+            loadSubject.OnCompleted();
         }
     }
 
-    private void LoadGraphics()
-    {
-        foreach (GraphicMaterial graphic in material.graphics)
-        {
+    void UnzipFromBytes (byte[] bytes) {
+        System.IO.MemoryStream zipStream = new System.IO.MemoryStream(bytes);
+        ZipUtility.UnzipFromStream(zipStream, materialPath);
+        string jsonPath = Path.Combine(materialPath, "materials", jsonFileName);
+        string jsonText = System.IO.File.ReadAllText(jsonPath);
+        material = JsonUtility.FromJson<Material>(jsonText);
+    }
+
+    void LoadGraphics () {
+        foreach (GraphicMaterial graphic in material.graphics) {
             string filePath = Path.Combine(materialPath, "materials", graphic.filename);
             byte[] bytes = System.IO.File.ReadAllBytes(filePath);
 
             Texture2D texture = new Texture2D(1, 1);
             texture.LoadImage(bytes);
             graphics.Add(Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f), 800.0f));
+            graphicIds.Add(graphic.id);
         }
     }
 }
 
 [System.Serializable]
-public class Material
-{
+public class Material {
     public GraphicMaterial[] graphics;
 }
 
 [System.Serializable]
-public class GraphicMaterial
-{
+public class GraphicMaterial {
     public string id;
     public string filename;
     public int width;

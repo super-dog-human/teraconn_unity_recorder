@@ -1,11 +1,17 @@
 mergeInto(LibraryManager.library, {
-    StartRecording: function () {
+    StartPoseDetecting: function () {
         new PoseDetector.start();
     },
-    StopRecording: function () {
+    StartAudioRecording: function () {
+        startVoiceRecording();
+    },
+    StopPoseDetecting: function () {
         new PoseDetector.stop();
     },
-    SaveVoice: function () {
-        new PoseDetector.saveVoice();
+    StopAudioRecording: function () {
+        stopVoiceRecording();
+    },
+    PostVoiceRecord: function () {
+        postVoice();
     },
 });

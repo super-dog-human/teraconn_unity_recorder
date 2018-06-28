@@ -24,15 +24,15 @@ limitations under the License. -->
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'UA-120790122-1');
     </script>
     <script src="%UNITY_WEBGL_LOADER_URL%"></script>
     <script src="./poseDetector.js"></script>
+    <script src="./voiceRecorder.js"></script>
     <script>
       const gameInstance = UnityLoader.instantiate("gameContainer", "%UNITY_WEBGL_BUILD_URL%", {onProgress: UnityProgress});
       function UnityProgress(gameInstance, progress) {
-        if (progress == 1) { new PoseDetector.setGameInstance(gameInstance); }
+        if (progress == 1) new PoseDetector.setGameInstance(gameInstance);
       }
     </script>
     <style>

@@ -1,15 +1,14 @@
 ﻿using UnityEngine;
 
-public class FPSIndicator : MonoBehaviour
-{
+public class FPSIndicator : MonoBehaviour {
     [SerializeField]
-    private const float m_updateInterval = 0.5f;
-    private float m_accum;
-    private int m_frames;
-    private float m_timeleft;
-    private float m_fps;
+    const float m_updateInterval = 0.5f;
+    float m_accum;
+    int m_frames;
+    float m_timeleft;
+    float m_fps;
 
-    private void Update() {
+    void Update() {
         m_timeleft -= Time.deltaTime;
         m_accum += Time.timeScale / Time.deltaTime;
         m_frames++;
@@ -22,7 +21,7 @@ public class FPSIndicator : MonoBehaviour
         m_frames = 0;
     }
 
-    private void OnGUI() {
+    void OnGUI() {
         GUIStyleState styleState = new GUIStyleState();
         styleState.textColor = Color.black;
 

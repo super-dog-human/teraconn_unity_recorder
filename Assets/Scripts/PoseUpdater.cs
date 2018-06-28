@@ -1,45 +1,42 @@
 ﻿using System.Linq;
 using System.Reflection;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class PositionUpdater : MonoBehaviour
-{
-    private Animator animator;
-    private const int poseCanvasWidth = 640;
-    private const int poseCanvasHeight = 480;
-    private const float cameraZIndex = 15.0f;
-    private const float accuracyThreshold = 0.3f;
-    private PoseVector currentPoseVector;
+public class PoseUpdater : MonoBehaviour {
+    const float cameraZIndex      = 15.0f;
+    const float accuracyThreshold = 0.3f;
+    Animator animator;
+    PoseVector currentPoseVector;
+    LessonRecorder lessonRecorder;
+    PoseRecord poseRecord;
 
-    void Start ()
-    {
+    void Start () {
         animator = gameObject.GetComponent<Animator>();
         animator.SetInteger("animation", 19);
+
+        lessonRecorder = GameObject.Find("ScriptLoader").GetComponent<LessonRecorder>();
     }
 
-    void OnAnimatorIK (int layerIndex)
-    {
+    void OnAnimatorIK (int layerIndex) {
         if (currentPoseVector == null) return;
+
+        poseRecord = new PoseRecord();
 
         UpdateCoreBodyPosition();
         UpdateHeadPosition();
         UpdateArmsPosition();
+
+        lessonRecorder.RecordPose(poseRecord);
     }
 
-    void SetCanvasSize (string jsonString)
-    {
-//		CanvasSize canvas = JsonUtility.FromJson<CanvasSize>(jsonString);
-    }
-
-    void UpdatePosition(string jsonString)
-    {
+    void UpdatePosition(string jsonString) {
         Pose pose = JsonUtility.FromJson<Pose>(jsonString);
         currentPoseVector = new PoseVector(pose);
     }
 
-    private void UpdateCoreBodyPosition ()
-    {
+    void UpdateCoreBodyPosition () {
         Vector3 rightShoulderPosition = currentPoseVector.rightShoulder.position;
         rightShoulderPosition.z = cameraZIndex;
         Vector3 worldRightShoulderPosition = Camera.main.ScreenToWorldPoint(rightShoulderPosition);
@@ -50,11 +47,15 @@ public class PositionUpdater : MonoBehaviour
 
         Vector3 position = transform.position;
         position.x = (worldRightShoulderPosition.x + worldLeftShoulderPosition.x) / 2 ;
-        transform.position = Vector3.Lerp(transform.position, position, Time.deltaTime * 2);
+        Vector3 bodyPosition = Vector3.Lerp(transform.position, position, Time.deltaTime * 2);
+
+        if (transform.position == bodyPosition) return;
+
+        poseRecord.body = bodyPosition;
+        transform.position = bodyPosition;
     }
 
-    private void UpdateHeadPosition ()
-    {
+    void UpdateHeadPosition () {
         if (!IsEyesAndNoseScoreGood(currentPoseVector)) return;
         if (!IsLeftOrRightEarScoreGood(currentPoseVector)) return;
 
@@ -78,11 +79,12 @@ public class PositionUpdater : MonoBehaviour
         if (Mathf.Abs(xRatio) >= 1.3f ) {
             lookAtPosition.x += eyeLength * xRatio;
         }
+
+        poseRecord.lookAt = lookAtPosition;
         animator.SetLookAtPosition(lookAtPosition);
     }
 
-    private bool IsEyesAndNoseScoreGood (PoseVector poseVector)
-    {
+    bool IsEyesAndNoseScoreGood (PoseVector poseVector) {
         bool isGoodScore = true;
         string[] faceKeypoints = { "nose", "leftEye", "rightEye" };
         foreach (FieldInfo field in poseVector.GetType().GetFields())
@@ -99,14 +101,13 @@ public class PositionUpdater : MonoBehaviour
         return isGoodScore;
     }
 
-    private bool IsLeftOrRightEarScoreGood (PoseVector poseVector) {
+    bool IsLeftOrRightEarScoreGood (PoseVector poseVector) {
         if (poseVector.leftEar.score >= accuracyThreshold)  { return true; }
         if (poseVector.rightEar.score >= accuracyThreshold) { return true; }
         return false;
     }
 
-    private void UpdateArmsPosition()
-    {
+    void UpdateArmsPosition () {
         // swap the left and right
         SetWorldElbowPosition(currentPoseVector.leftElbow, AvatarIKHint.RightElbow);
         SetWorldHandPosition(currentPoseVector.leftElbow, currentPoseVector.leftWrist, AvatarIKGoal.RightHand);
@@ -115,11 +116,10 @@ public class PositionUpdater : MonoBehaviour
         SetWorldHandPosition(currentPoseVector.rightElbow, currentPoseVector.rightWrist, AvatarIKGoal.LeftHand);
     }
 
-    private void SetWorldElbowPosition(PartVector part, AvatarIKHint avatarPart)
-    {
-        if (part.score < accuracyThreshold) return;
+    void SetWorldElbowPosition (PartVector elbowPart, AvatarIKHint avatarPart) {
+        if (elbowPart.score < accuracyThreshold) return;
 
-        Vector3 position = part.position;
+        Vector3 position = elbowPart.position;
         position.z = cameraZIndex;
         Vector3 worldPosition = Camera.main.ScreenToWorldPoint(position);
         worldPosition.z = animator.GetIKHintPosition(avatarPart).z;
@@ -127,11 +127,14 @@ public class PositionUpdater : MonoBehaviour
         animator.SetIKHintPositionWeight(avatarPart, 1);
         animator.SetIKHintPosition(avatarPart, worldPosition);
 
-//		lessonRecorder.RecordPose("");
+        if (avatarPart == AvatarIKHint.LeftElbow) {
+            poseRecord.leftElbow  = worldPosition;
+        } else {
+            poseRecord.rightElbow = worldPosition;
+        }
     }
 
-    private void SetWorldHandPosition (PartVector elbowPart, PartVector wristPart, AvatarIKGoal avatarPart)
-    {
+    void SetWorldHandPosition (PartVector elbowPart, PartVector wristPart, AvatarIKGoal avatarPart) {
         if (wristPart.score < accuracyThreshold) return;
 
         Vector3 position = HandPosition(elbowPart.position, wristPart.position);
@@ -142,18 +145,20 @@ public class PositionUpdater : MonoBehaviour
         animator.SetIKPositionWeight(avatarPart, 1);
         animator.SetIKPosition(avatarPart, worldPosition);
 
-//		lessonRecorder.RecordPose("");
+        if(avatarPart == AvatarIKGoal.LeftHand) {
+            poseRecord.leftHand  = worldPosition;
+        } else {
+            poseRecord.rightHand = worldPosition;
+        }
     }
 
-    private Vector3 HandPosition (Vector3 elbowPosition, Vector3 wristPosition)
-    {
+    Vector3 HandPosition (Vector3 elbowPosition, Vector3 wristPosition) {
         float armLength = (wristPosition - elbowPosition).magnitude;
         Vector3 handVector = (wristPosition - elbowPosition).normalized * armLength * 0.5f;
         return wristPosition + handVector;
     }
 
-    public class PoseVector
-    {
+    public class PoseVector {
         public PartVector nose { get; set; }
         public PartVector leftEye { get; set; }
         public PartVector rightEye { get; set; }
@@ -168,8 +173,7 @@ public class PositionUpdater : MonoBehaviour
         public PartVector leftHip { get; set; }
         public PartVector rightHip { get; set; }
 
-        public PoseVector(Pose pose)
-        {
+        public PoseVector(Pose pose) {
             nose          = new PartVector(pose.nose);
             leftEye       = new PartVector(pose.leftEye);
             rightEye      = new PartVector(pose.rightEye);
@@ -186,31 +190,32 @@ public class PositionUpdater : MonoBehaviour
         }
     }
 
-    public class PartVector
-    {
+    public class PartVector {
         public float score { get; set; }
         public Vector3 position { get; set; }
 
+        const int poseCanvasWidth     = 640;
+        const int poseCanvasHeight    = 480;
+
         public PartVector(Keypoint keypoint)
         {
+            float multiplier = Screen.width / poseCanvasWidth;
             score = keypoint.score;
-
-            Vector3 originPose = new Vector3(poseCanvasWidth, poseCanvasHeight, 0);
-            Vector3 partPose   = new Vector3(keypoint.x, keypoint.y, 0);
+Debug.Log("multiplier: " + multiplier);
+            Vector3 originPose = new Vector3(Screen.width, poseCanvasHeight * multiplier, 0);
+            Vector3 partPose   = new Vector3(keypoint.x * multiplier, keypoint.y * multiplier, 0);
             position = originPose - partPose;
         }
     }
 
     [System.Serializable]
-    public class CanvasSize
-    {
+    public class CanvasSize {
         public int width;
         public int height;
     }
 
     [System.Serializable]
-    public class Pose
-    {
+    public class Pose {
         public float score;
         public Keypoint nose;
         public Keypoint leftEye;
@@ -232,8 +237,7 @@ public class PositionUpdater : MonoBehaviour
     }
 
     [System.Serializable]
-    public class Keypoint
-    {
+    public class Keypoint {
         public float score;
         public float x;
         public float y;

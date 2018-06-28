@@ -2,11 +2,9 @@
 using ICSharpCode.SharpZipLib.Core;
 using ICSharpCode.SharpZipLib.Zip;
 
-public class ZipUtility
-{
-    private const int utf8_codepage = 65001;
-    public static void UnzipFromStream (System.IO.Stream stream, string outDir)
-    {
+public class ZipUtility {
+    const int utf8_codepage = 65001;
+    public static void UnzipFromStream (System.IO.Stream stream, string outDir) {
         ZipConstants.DefaultCodePage = utf8_codepage;
         ZipInputStream zipInputStream = new ZipInputStream(stream);
         ZipEntry zipEntry = zipInputStream.GetNextEntry();
@@ -20,8 +18,7 @@ public class ZipUtility
             if (directoryName.Length > 0) Directory.CreateDirectory(directoryName);
 
             string fileName = Path.GetFileName(fullZipToPath);
-            if (fileName.Length == 0)
-            {
+            if (fileName.Length == 0) {
                 zipEntry = zipInputStream.GetNextEntry();
                 continue;
             }

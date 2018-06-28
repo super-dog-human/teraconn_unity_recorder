@@ -6,6 +6,7 @@
 Assets/AssetStoreTools*
 Assets/Suriyun/*
 Assets/Demigiant/*
+Assets/Plugins/UniRx/*
 
 # Visual Studio cache directory
 .vs/

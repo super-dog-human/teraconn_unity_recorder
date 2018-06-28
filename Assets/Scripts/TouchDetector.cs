@@ -5,18 +5,16 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
 public class TouchDetector : MonoBehaviour {
+    Animator animator;
+    GameObject nextButton;
+    GameObject prevButton;
+    Vector2 nextButtonBottomLeftEnd;
+    Vector2 nextButtonTopRightEnd;
+    Vector2 prevButtonBottomLeftEnd;
+    Vector2 prevButtonTopRightEnd;
+    bool isButtonTouched;
 
-    private Animator animator;
-    private GameObject nextButton;
-    private GameObject prevButton;
-    private Vector2 nextButtonBottomLeftEnd;
-    private Vector2 nextButtonTopRightEnd;
-    private Vector2 prevButtonBottomLeftEnd;
-    private Vector2 prevButtonTopRightEnd;
-    private bool isButtonTouched;
-
-    void Start ()
-    {
+    void Start () {
         animator = gameObject.GetComponent<Animator>();
 
         nextButton = GameObject.Find("NextImageButton");
@@ -31,8 +29,7 @@ public class TouchDetector : MonoBehaviour {
         prevButtonTopRightEnd = prevButtonTransform.TransformPoint(prevButtonTransform.sizeDelta);
     }
 
-    void OnAnimatorIK (int layerIndex)
-    {
+    void OnAnimatorIK (int layerIndex) {
         if (isButtonTouched) return;
 
         Vector2 rightHandPosition = Camera.main.WorldToScreenPoint(animator.GetIKPosition(AvatarIKGoal.RightHand));
@@ -49,24 +46,21 @@ public class TouchDetector : MonoBehaviour {
         if (isButtonTouched) Invoke("EnableTouch", 1);
     }
 
-    private bool IsTouchNextGraphButton (Vector2 rightHandPosition, Vector2 leftHandPosition)
-    {
+    bool IsTouchNextGraphButton (Vector2 rightHandPosition, Vector2 leftHandPosition) {
         if (IsPositionInRange(rightHandPosition, true)) return true;
         if (IsPositionInRange(leftHandPosition, true)) return true;
 
         return false;
     }
 
-    private bool IsTouchPrevGraphButton (Vector2 rightHandPosition, Vector2 leftHandPosition)
-    {
+    bool IsTouchPrevGraphButton (Vector2 rightHandPosition, Vector2 leftHandPosition) {
         if (IsPositionInRange(rightHandPosition, false)) return true;
         if (IsPositionInRange(leftHandPosition, false)) return true;
 
         return false;
     }
 
-    private bool IsPositionInRange (Vector2 targetPosition, bool isNext)
-    {
+    bool IsPositionInRange (Vector2 targetPosition, bool isNext) {
         Vector2 leftEndPosition;
         Vector2 rightEndPosition;
         if (isNext) {
@@ -86,8 +80,7 @@ public class TouchDetector : MonoBehaviour {
         return false;
     }
 
-    private void clickButton (GameObject target)
-    {
+    void clickButton (GameObject target) {
         EventSystem.current.SetSelectedGameObject(target);
         ExecuteEvents.Execute(
             target:    target,
@@ -96,8 +89,7 @@ public class TouchDetector : MonoBehaviour {
         );
     }
 
-    private void EnableTouch ()
-    {
+    void EnableTouch () {
         EventSystem.current.SetSelectedGameObject(null);
         isButtonTouched = false;
     }
