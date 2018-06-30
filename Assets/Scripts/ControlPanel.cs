@@ -5,6 +5,9 @@ using UniRx;
 public class ControlPanel : MonoBehaviour {
     GraphicSwitcher graphicSwitcher;
     LessonRecorder lessonRecorder;
+    EmotionChanger emotionChanger;
+    PoseUpdater poseUpdater;
+
     Text recordingText;
     GameObject nextGraphicButton;
     GameObject prevGraphicButton;
@@ -15,6 +18,8 @@ public class ControlPanel : MonoBehaviour {
     void Start () {
         graphicSwitcher = GameObject.Find("ScriptLoader").GetComponent<GraphicSwitcher>();
         lessonRecorder  = GameObject.Find("ScriptLoader").GetComponent<LessonRecorder>();
+        emotionChanger  = GameObject.Find("Kaoru").GetComponent<EmotionChanger>();
+        poseUpdater     = GameObject.Find("Kaoru").GetComponent<PoseUpdater>();
         recordingText   = GameObject.Find("RecordingText").GetComponent<Text>();
 
         nextGraphicButton = GameObject.Find("NextGraphicButton");
@@ -38,11 +43,26 @@ public class ControlPanel : MonoBehaviour {
 
         GameObject.Find("FullScreenButton").GetComponent<Button>().onClick.AddListener(SwitchFullScreen);
 
-        LessonMaterial lessonMaterial = GameObject.Find("ScriptLoader").GetComponent<LessonMaterial>();
-        lessonMaterial.OnLoadCompleted.Subscribe (_ => {
+        GameObject.Find("ScriptLoader").GetComponent<LessonMaterial>().OnLoadCompleted.Subscribe (_ => {
             nextGraphicButton.SetActive(true);
             prevGraphicButton.SetActive(true);
         });
+
+        GameObject.Find("SmileButton").GetComponent<Button>().onClick.AddListener(() => {
+            EmotionChange("smile1");
+        });
+
+        GameObject.Find("SadButton").GetComponent<Button>().onClick.AddListener(() => {
+            EmotionChange("sad2");
+        });
+
+        GameObject.Find("AngerButton").GetComponent<Button>().onClick.AddListener(() => {
+            EmotionChange("anger3");
+        });
+    }
+
+    void EmotionChange (string emotion) {
+        emotionChanger.ChangeTo(emotion);
     }
 
     void SwitchNextGraphic () {

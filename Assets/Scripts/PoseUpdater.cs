@@ -5,18 +5,48 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class PoseUpdater : MonoBehaviour {
+    const int   idlingAnimationId = 19;
     const float cameraZIndex      = 15.0f;
     const float accuracyThreshold = 0.3f;
     Animator animator;
     PoseVector currentPoseVector;
     LessonRecorder lessonRecorder;
     PoseRecord poseRecord;
+    bool isMoveForward;
+    bool isMoveBack;
 
     void Start () {
         animator = gameObject.GetComponent<Animator>();
-        animator.SetInteger("animation", 19);
+        animator.SetInteger("animation", idlingAnimationId);
 
         lessonRecorder = GameObject.Find("ScriptLoader").GetComponent<LessonRecorder>();
+    }
+
+    void Update () {
+        if (Input.GetKey(KeyCode.UpArrow)) {
+            isMoveForward = false;
+            isMoveBack    = true;
+        } else if (Input.GetKey(KeyCode.DownArrow)) {
+            isMoveForward = true;
+            isMoveBack    = false;
+        } else {
+            isMoveForward = false;
+            isMoveBack    = false;
+        }
+    }
+
+    void FixedUpdate () {
+        Vector3 target = transform.position;
+
+        if (isMoveForward && transform.position.z <= 10.0f) {
+            target +=  Vector3.forward * 1.0f;
+        } else if (isMoveBack && transform.position.z >= 0.5f) {
+            target +=  Vector3.back * 1.0f;
+        } else {
+            return;
+        }
+
+        transform.position = Vector3.MoveTowards(transform.position, target, 0.2f);
     }
 
     void OnAnimatorIK (int layerIndex) {
