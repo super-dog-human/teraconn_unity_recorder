@@ -83,6 +83,11 @@ limitations under the License. -->
         new VoiceRecorder.setGameInstance(gameInstance);
       }
     }
+    window.addEventListener("beforeunload", (e) => {
+      new PoseDetector.stop();
+      new VoiceRecorder.stop();
+      return;
+    });
   </script>
 
 </html>
