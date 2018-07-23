@@ -5,13 +5,11 @@ using UnityEngine;
 using UnityEngine.Networking;
 
 public class HTTPClient : MonoBehaviour {
-    const string url = "http://localhost/";
-
-    public void postJson (string jsonString) {
-        StartCoroutine(Post(jsonString));
+    public void postJson (string url, string jsonString) {
+        StartCoroutine(Post(url, jsonString));
     }
 
-    IEnumerator Post(string jsonString) {
+    IEnumerator Post(string url, string jsonString) {
         UnityWebRequest request = new UnityWebRequest(url, "POST");
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonString);
         request.uploadHandler = (UploadHandler) new UploadHandlerRaw(bodyRaw);
@@ -21,5 +19,10 @@ public class HTTPClient : MonoBehaviour {
         yield return request.SendWebRequest();
 
         Debug.Log("Status Code: " + request.responseCode);
+        Debug.Log("Result: " + request.downloadHandler.text);
+
+        if(request.isHttpError || request.isNetworkError) {
+            Debug.Log(request.error);
+        }
     }
 }

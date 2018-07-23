@@ -16,20 +16,23 @@ public class PoseUpdater : MonoBehaviour {
     bool isMoveBack;
 
     void Start () {
-        animator = gameObject.GetComponent<Animator>();
+        animator = GetComponent<Animator>();
         animator.SetInteger("animation", idlingAnimationId);
 
         lessonRecorder = GameObject.Find("ScriptLoader").GetComponent<LessonRecorder>();
     }
 
     void Update () {
-        if (Input.GetKey(KeyCode.UpArrow)) {
+        if (Input.GetKeyDown(KeyCode.UpArrow)) {
             isMoveForward = false;
             isMoveBack    = true;
-        } else if (Input.GetKey(KeyCode.DownArrow)) {
+        } else if (Input.GetKeyDown(KeyCode.DownArrow)) {
             isMoveForward = true;
             isMoveBack    = false;
-        } else {
+        } else if (Input.GetKeyUp(KeyCode.UpArrow)) {
+            isMoveForward = false;
+            isMoveBack    = false;
+        } else if (Input.GetKeyUp(KeyCode.DownArrow)) {
             isMoveForward = false;
             isMoveBack    = false;
         }
@@ -46,7 +49,12 @@ public class PoseUpdater : MonoBehaviour {
             return;
         }
 
-        transform.position = Vector3.MoveTowards(transform.position, target, 0.2f);
+        Vector3 updatedPosition = Vector3.MoveTowards(transform.position, target, 0.2f);
+        transform.position = updatedPosition;
+
+        PoseRecord coreBodyPoseRecord = new PoseRecord();
+        coreBodyPoseRecord.coreBody = updatedPosition;
+        lessonRecorder.RecordPose(coreBodyPoseRecord);
     }
 
     void OnAnimatorIK (int layerIndex) {
@@ -59,6 +67,25 @@ public class PoseUpdater : MonoBehaviour {
         UpdateArmsPosition();
 
         lessonRecorder.RecordPose(poseRecord);
+    }
+
+    public void SwicthMovingBackAndForward(string movingType) {
+        switch(movingType) {
+            case "startMovingForward":
+                isMoveForward = true;
+                isMoveBack    = false;
+                break;
+            case "startMovingBack":
+                isMoveForward = false;
+                isMoveBack    = true;
+                break;
+            case "stopMoving":
+                isMoveForward = false;
+                isMoveBack    = false;
+                break;
+            default:
+                break;
+        }
     }
 
     void UpdatePosition(string jsonString) {
@@ -81,7 +108,7 @@ public class PoseUpdater : MonoBehaviour {
 
         if (transform.position == bodyPosition) return;
 
-        poseRecord.body = bodyPosition;
+        poseRecord.coreBody = bodyPosition;
         transform.position = bodyPosition;
     }
 
@@ -224,14 +251,14 @@ public class PoseUpdater : MonoBehaviour {
         public float score { get; set; }
         public Vector3 position { get; set; }
 
-        const int poseCanvasWidth     = 640;
-        const int poseCanvasHeight    = 480;
+        const int poseCanvasWidth  = 640;
+        const int poseCanvasHeight = 480;
 
         public PartVector(Keypoint keypoint)
         {
             float multiplier = Screen.width / poseCanvasWidth;
             score = keypoint.score;
-Debug.Log("multiplier: " + multiplier);
+
             Vector3 originPose = new Vector3(Screen.width, poseCanvasHeight * multiplier, 0);
             Vector3 partPose   = new Vector3(keypoint.x * multiplier, keypoint.y * multiplier, 0);
             position = originPose - partPose;

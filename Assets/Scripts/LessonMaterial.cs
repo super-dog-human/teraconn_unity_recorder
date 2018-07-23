@@ -47,14 +47,14 @@ public class LessonMaterial : MonoBehaviour {
     void UnzipFromBytes (byte[] bytes) {
         System.IO.MemoryStream zipStream = new System.IO.MemoryStream(bytes);
         ZipUtility.UnzipFromStream(zipStream, materialPath);
-        string jsonPath = Path.Combine(materialPath, "materials", jsonFileName);
+        string jsonPath = Path.Combine(materialPath, "materials/" + jsonFileName);
         string jsonText = System.IO.File.ReadAllText(jsonPath);
         material = JsonUtility.FromJson<Material>(jsonText);
     }
 
     void LoadGraphics () {
         foreach (GraphicMaterial graphic in material.graphics) {
-            string filePath = Path.Combine(materialPath, "materials", graphic.filename);
+            string filePath = Path.Combine(materialPath, "materials/" + graphic.filename);
             byte[] bytes = System.IO.File.ReadAllBytes(filePath);
 
             Texture2D texture = new Texture2D(1, 1);

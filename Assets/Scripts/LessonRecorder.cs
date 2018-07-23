@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -8,23 +9,21 @@ public class LessonRecorder : MonoBehaviour {
     [DllImport("__Internal")]
     static extern void StartPoseDetecting();
     [DllImport("__Internal")]
-    static extern void StartAudioRecording();
-    [DllImport("__Internal")]
     static extern void StopPoseDetecting();
     [DllImport("__Internal")]
-    static extern void StopAudioRecording();
+    static extern void StartAudioRecording();
     [DllImport("__Internal")]
-    static extern void PostVoiceRecord();
+    static extern void StopAudioRecording();
 
     bool isRecording;
-    List<PoseRecord>    poseRecords    = new List<PoseRecord>();
-    List<GraphicRecord> graphicRecords = new List<GraphicRecord>();
-    float recordStartMsec;
-    float elapsedTimeMsec = 0.0f;
+    float recordStartSec;
+    float elapsedTimeSec = 0.0f;
+    List<TimelineRecord> timelineRecords = new List<TimelineRecord>();
+    List<PoseRecord> poseRecords         = new List<PoseRecord>();
 
     public void StartRecording () {
         isRecording = true;
-        recordStartMsec = Time.realtimeSinceStartup;
+        recordStartSec = Time.realtimeSinceStartup;
 
         StartPoseDetecting();
         StartAudioRecording();
@@ -32,7 +31,7 @@ public class LessonRecorder : MonoBehaviour {
 
     public void StopRecording () {
         isRecording = false;
-        elapsedTimeMsec = Time.realtimeSinceStartup - recordStartMsec;
+        elapsedTimeSec = Time.realtimeSinceStartup - recordStartSec;
 
         StopPoseDetecting();
         StopAudioRecording();
@@ -41,78 +40,195 @@ public class LessonRecorder : MonoBehaviour {
     public void RecordPose (PoseRecord record) {
         if (!isRecording) return;
 
-        string currentTime = CurrentTimeMsec().ToString();
-        record.time = currentTime;
+        record.timeSec = CurrentTimeSec();
         poseRecords.Add(record);
     }
 
     public void RecordGraphicSwitching (string showGraphicId, string hideGraphicId) {
         if (!isRecording) return;
 
-        string currentTime = CurrentTimeMsec().ToString();
+        List<GraphicRecord> graphicRecords = new List<GraphicRecord>();
         if (showGraphicId != null) {
             GraphicRecord record = new GraphicRecord(showGraphicId, "show");
-            record.time = currentTime;
             graphicRecords.Add(record);
         }
 
         if (hideGraphicId != null) {
             GraphicRecord record = new GraphicRecord(hideGraphicId, "hide");
-            record.time = currentTime;
             graphicRecords.Add(record);
+        }
+
+        TimelineRecord timeline = timelineRecords.Find(t => t.timeSec == CurrentTimeSec());
+        if (timeline == null) {
+            timeline = new TimelineRecord();
+            timeline.timeSec = CurrentTimeSec();
+            timelineRecords.Add(timeline);
+        };
+        timeline.graphic = graphicRecords;
+    }
+
+    public void RecordFacialExpression(string expressionName) {
+        float currentTime = CurrentTimeSec();
+
+        TimelineRecord timeline = timelineRecords.Find(t => t.timeSec == currentTime);
+        if (timeline == null) {
+            timeline = new TimelineRecord();
+            timeline.timeSec = currentTime;
+            timelineRecords.Add(timeline);
+        };
+
+        SpecialActionRecord action = new SpecialActionRecord(null, expressionName);
+        timeline.spAction = action;
+    }
+
+    public void RecordSpeech(string jsonString) {
+        SpeechHistory history   = JsonUtility.FromJson<SpeechHistory>(jsonString);
+        TextRecord textRecord   = new TextRecord(history.durationSec);
+        VoiceRecord voiceRecord = new VoiceRecord(history.durationSec, history.fileID);
+        TimelineRecord timeline = timelineRecords.Find(t => t.timeSec == history.timeSec);
+
+        if (timeline == null) {
+            timeline = new TimelineRecord();
+            timeline.timeSec = history.timeSec;
+            timeline.text    = textRecord;
+            timeline.voice   = voiceRecord;
+            timelineRecords.Add(timeline);
+            return;
+        }
+
+        if (timeline.text == null) {
+            timeline.text = textRecord;
+        }
+
+        if (timeline.voice == null) {
+            timeline.voice = voiceRecord;
+        } else {
+            Utilities.MergeValues(timeline.voice, voiceRecord);
         }
     }
 
     public void Save () {
+        if (timelineRecords.Count() == 0) {
+            return;
+        }
+
+        int incompletedVoiceCount = timelineRecords.Count(timeline => timeline.voice != null && timeline.voice.fileID == null);
+        if (incompletedVoiceCount > 0) {
+            StartCoroutine("RetrySaveAfterSeconds", 1);
+            return;
+        }
+
         PostRecord();
-        PostVoiceRecord();
     }
 
-    float CurrentTimeMsec () {
-        float currentTimeMsec = Time.realtimeSinceStartup - recordStartMsec;
-        if (elapsedTimeMsec > 0) currentTimeMsec += elapsedTimeMsec;
-        return currentTimeMsec;
+    IEnumerator RetrySaveAfterSeconds (int seconds) {
+        yield return new WaitForSeconds(seconds);
+        Save();
+    }
+
+    float CurrentTimeSec () {
+        float currentTimeSec = Time.realtimeSinceStartup - recordStartSec;
+        if (elapsedTimeSec > 0) currentTimeSec += elapsedTimeSec;
+        return currentTimeSec;
     }
 
     void PostRecord () {
-        Record requestRecord = new Record(poseRecords, graphicRecords);
-        string jsonString = JsonUtility.ToJson(requestRecord);
+        // sort timelineRecords by time
+        LessonRecord record = new LessonRecord();
+        record.durationSec  = elapsedTimeSec;
+        record.timelines    = timelineRecords;
+        record.poses        = poseRecords;
+        record.published    = System.DateTime.Now.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        record.updated      = System.DateTime.Now.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
+        string jsonString = JsonUtility.ToJson(record);
+        string lessonId = Application.absoluteURL.Split("?"[0])[1];
+        string url = string.Format("https://zygoptera.net/lessons/{0}/materials", lessonId);
         HTTPClient httpClient = GameObject.Find("ScriptLoader").GetComponent<HTTPClient>();
-        httpClient.postJson(jsonString);
+        httpClient.postJson(url, jsonString);
+    }
+
+    void SaveCompleted () {
+        // dismiss loading indicator
+        //
     }
 }
 
 [System.Serializable]
-public class Record {
-    public List<PoseRecord>    poses;
-    public List<GraphicRecord> graphics;
+public class LessonRecord {
+    public float                durationSec;
+    public List<TimelineRecord> timelines;
+    public List<PoseRecord>     poses;
+    public string               published;
+    public string               updated;
+}
 
-    public Record(List<PoseRecord> poses, List<GraphicRecord> graphics) {
-        this.poses    = poses;
-        this.graphics = graphics;
-    }
+[System.Serializable]
+public class TimelineRecord {
+    public float               timeSec;
+    public TextRecord          text;
+    public VoiceRecord         voice;
+    public List<GraphicRecord> graphic;
+    public SpecialActionRecord spAction;
 }
 
 [System.Serializable]
 public class PoseRecord {
-    public string time;
-    public Vector3 body;
-    public Vector3 lookAt;
-    public Vector3 leftElbow;
-    public Vector3 rightElbow;
+    public float   timeSec;
     public Vector3 leftHand;
     public Vector3 rightHand;
+    public Vector3 leftElbow;
+    public Vector3 rightElbow;
+    public Vector3 lookAt;
+    public Vector3 coreBody;
 }
 
 [System.Serializable]
 public class GraphicRecord {
-    public string time;
-    public string id;
+    public string graphicID;
     public string action;
 
-    public GraphicRecord(string id, string action) {
-        this.id     = id;
-        this.action = action;
+    public GraphicRecord (string graphicID, string action) {
+        this.graphicID = graphicID;
+        this.action    = action;
+    }
+}
+
+[System.Serializable]
+public class SpecialActionRecord {
+    public string action;
+    public string facialExpression;
+
+    public SpecialActionRecord (string action, string facialExpression) {
+        this.action           = action;
+        this.facialExpression = facialExpression;
+    }
+}
+
+[System.Serializable]
+public class SpeechHistory {
+    public int    index;
+    public float  timeSec;
+    public float  durationSec;
+    public string fileID;
+}
+
+[System.Serializable]
+public class TextRecord {
+    public float durationSec;
+
+    public TextRecord (float durationSec) {
+        this.durationSec = durationSec;
+    }
+}
+
+[System.Serializable]
+public class VoiceRecord {
+    public float  durationSec;
+    public string fileID;
+
+    public VoiceRecord (float durationSec, string fileID) {
+        this.durationSec = durationSec;
+        this.fileID      = fileID;
     }
 }

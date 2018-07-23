@@ -1,12 +1,13 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using UniRx;
 
 public class ControlPanel : MonoBehaviour {
     GraphicSwitcher graphicSwitcher;
     LessonRecorder lessonRecorder;
+    PoseUpdater    poseUpdater;
     EmotionChanger emotionChanger;
-    PoseUpdater poseUpdater;
 
     Text recordingText;
     GameObject nextGraphicButton;
@@ -16,11 +17,15 @@ public class ControlPanel : MonoBehaviour {
     GameObject saveButton;
 
     void Start () {
-        graphicSwitcher = GameObject.Find("ScriptLoader").GetComponent<GraphicSwitcher>();
-        lessonRecorder  = GameObject.Find("ScriptLoader").GetComponent<LessonRecorder>();
-        emotionChanger  = GameObject.Find("Kaoru").GetComponent<EmotionChanger>();
-        poseUpdater     = GameObject.Find("Kaoru").GetComponent<PoseUpdater>();
-        recordingText   = GameObject.Find("RecordingText").GetComponent<Text>();
+        GameObject scriptLoader = GameObject.Find("ScriptLoader");
+        graphicSwitcher = scriptLoader.GetComponent<GraphicSwitcher>();
+        lessonRecorder  = scriptLoader.GetComponent<LessonRecorder>();
+
+        GameObject kaoru = GameObject.Find("Kaoru");
+        poseUpdater    = kaoru.GetComponent<PoseUpdater>();
+        emotionChanger = kaoru.GetComponent<EmotionChanger>();
+
+        recordingText = GameObject.Find("RecordingText").GetComponent<Text>();
 
         nextGraphicButton = GameObject.Find("NextGraphicButton");
         nextGraphicButton.GetComponent<Button>().onClick.AddListener(SwitchNextGraphic);
@@ -41,28 +46,63 @@ public class ControlPanel : MonoBehaviour {
         saveButton.GetComponent<Button>().onClick.AddListener(SaveRecord);
         saveButton.SetActive(false);
 
-        GameObject.Find("FullScreenButton").GetComponent<Button>().onClick.AddListener(SwitchFullScreen);
+        GameObject.Find("FullScreenButton").GetComponent<Button>().onClick.AddListener(() => {
+            Screen.fullScreen = !Screen.fullScreen;
+        });
 
-        GameObject.Find("ScriptLoader").GetComponent<LessonMaterial>().OnLoadCompleted.Subscribe (_ => {
+        scriptLoader.GetComponent<LessonMaterial>().OnLoadCompleted.Subscribe (_ => {
             nextGraphicButton.SetActive(true);
             prevGraphicButton.SetActive(true);
+
+            TouchDetector touchDetector = scriptLoader.GetComponent<TouchDetector>();
+            touchDetector.initButtons();
         });
 
         GameObject.Find("SmileButton").GetComponent<Button>().onClick.AddListener(() => {
-            EmotionChange("smile1");
+            SwitchFacialExpression("smile1");
         });
 
         GameObject.Find("SadButton").GetComponent<Button>().onClick.AddListener(() => {
-            EmotionChange("sad2");
+            SwitchFacialExpression("sad2");
         });
 
         GameObject.Find("AngerButton").GetComponent<Button>().onClick.AddListener(() => {
-            EmotionChange("anger3");
+            SwitchFacialExpression("anger3");
         });
+
+        EventTrigger stepForwardEventTrigger = GameObject.Find("StepForwardButton")
+            .GetComponent<Button>().gameObject.AddComponent<EventTrigger>();
+        EventTrigger stepBackEventTrigger    = GameObject.Find("StepBackButton")
+            .GetComponent<Button>().gameObject.AddComponent<EventTrigger>();
+
+        EventTrigger.Entry moveForwardEntry = new EventTrigger.Entry();
+        moveForwardEntry.eventID = EventTriggerType.PointerDown;
+        moveForwardEntry.callback.AddListener((_) => {
+            poseUpdater.SwicthMovingBackAndForward("startMovingForward");
+        });
+        EventTrigger.Entry moveBackEntry = new EventTrigger.Entry();
+        moveBackEntry.eventID = EventTriggerType.PointerDown;
+        moveBackEntry.callback.AddListener((_) => {
+            poseUpdater.SwicthMovingBackAndForward("startMovingBack");
+        });
+        EventTrigger.Entry stopEntry = new EventTrigger.Entry();
+        stopEntry.eventID = EventTriggerType.PointerUp;
+        stopEntry.callback.AddListener((_) => {
+            poseUpdater.SwicthMovingBackAndForward("stopMoving");
+        });
+
+        stepForwardEventTrigger.triggers.Add(moveForwardEntry);
+        stepForwardEventTrigger.triggers.Add(stopEntry);
+        stepBackEventTrigger.triggers.Add(moveBackEntry);
+        stepBackEventTrigger.triggers.Add(stopEntry);
     }
 
-    void EmotionChange (string emotion) {
-        emotionChanger.ChangeTo(emotion);
+    void Update () {
+        if (Input.GetKeyDown(KeyCode.LeftArrow)) {
+            SwitchPrevGraphic();
+        } else if (Input.GetKeyDown(KeyCode.RightArrow)) {
+            SwitchNextGraphic();
+        }
     }
 
     void SwitchNextGraphic () {
@@ -71,6 +111,11 @@ public class ControlPanel : MonoBehaviour {
 
     void SwitchPrevGraphic () {
         graphicSwitcher.ChangePrevGraphic();
+    }
+
+    void SwitchFacialExpression (string expressionName) {
+        emotionChanger.ChangeTo(expressionName);
+        lessonRecorder.RecordFacialExpression(expressionName);
     }
 
     void StartRecording () {
@@ -95,10 +140,6 @@ public class ControlPanel : MonoBehaviour {
 
     void SaveRecord () {
         lessonRecorder.Save();
-    }
-
-    void SwitchFullScreen () {
-        Screen.fullScreen = !Screen.fullScreen;
     }
 
     void ColorAlphaToZero (Text text) {

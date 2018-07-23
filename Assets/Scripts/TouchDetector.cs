@@ -13,13 +13,13 @@ public class TouchDetector : MonoBehaviour {
     Vector2 prevButtonBottomLeftEnd;
     Vector2 prevButtonTopRightEnd;
     bool isButtonTouched;
+    bool isReady;
 
     void Start () {
         animator = gameObject.GetComponent<Animator>();
+    }
 
-        nextButton = GameObject.Find("NextImageButton");
-        prevButton = GameObject.Find("PrevImageButton");
-
+    public void initButtons () {
         nextButtonBottomLeftEnd = nextButton.GetComponent<Button>().transform.position;
         prevButtonBottomLeftEnd = prevButton.GetComponent<Button>().transform.position;
 
@@ -27,10 +27,13 @@ public class TouchDetector : MonoBehaviour {
         RectTransform prevButtonTransform = prevButton.GetComponent<RectTransform>();
         nextButtonTopRightEnd = nextButtonTransform.TransformPoint(nextButtonTransform.sizeDelta);
         prevButtonTopRightEnd = prevButtonTransform.TransformPoint(prevButtonTransform.sizeDelta);
+
+        isReady = true;
     }
 
     void OnAnimatorIK (int layerIndex) {
         if (isButtonTouched) return;
+        if (!isReady) return;
 
         Vector2 rightHandPosition = Camera.main.WorldToScreenPoint(animator.GetIKPosition(AvatarIKGoal.RightHand));
         Vector2 leftHandPosition  = Camera.main.WorldToScreenPoint(animator.GetIKPosition(AvatarIKGoal.LeftHand));
