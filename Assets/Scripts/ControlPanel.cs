@@ -74,6 +74,10 @@ public class ControlPanel : MonoBehaviour {
             .GetComponent<Button>().gameObject.AddComponent<EventTrigger>();
         EventTrigger stepBackEventTrigger    = GameObject.Find("StepBackButton")
             .GetComponent<Button>().gameObject.AddComponent<EventTrigger>();
+        EventTrigger stepLeftEventTrigger = GameObject.Find("StepLeftButton")
+            .GetComponent<Button>().gameObject.AddComponent<EventTrigger>();
+        EventTrigger stepRightEventTrigger = GameObject.Find("StepRightButton")
+            .GetComponent<Button>().gameObject.AddComponent<EventTrigger>();
 
         EventTrigger.Entry moveForwardEntry = new EventTrigger.Entry();
         moveForwardEntry.eventID = EventTriggerType.PointerDown;
@@ -85,6 +89,16 @@ public class ControlPanel : MonoBehaviour {
         moveBackEntry.callback.AddListener((_) => {
             poseUpdater.SwicthMovingBackAndForward("startMovingBack");
         });
+        EventTrigger.Entry moveLeftEntry = new EventTrigger.Entry();
+        moveLeftEntry.eventID = EventTriggerType.PointerDown;
+        moveLeftEntry.callback.AddListener((_) => {
+            poseUpdater.SwicthMovingBackAndForward("startMovingLeft");
+        });
+        EventTrigger.Entry moveRightEntry = new EventTrigger.Entry();
+        moveRightEntry.eventID = EventTriggerType.PointerDown;
+        moveRightEntry.callback.AddListener((_) => {
+            poseUpdater.SwicthMovingBackAndForward("startMovingRight");
+        });
         EventTrigger.Entry stopEntry = new EventTrigger.Entry();
         stopEntry.eventID = EventTriggerType.PointerUp;
         stopEntry.callback.AddListener((_) => {
@@ -95,12 +109,16 @@ public class ControlPanel : MonoBehaviour {
         stepForwardEventTrigger.triggers.Add(stopEntry);
         stepBackEventTrigger.triggers.Add(moveBackEntry);
         stepBackEventTrigger.triggers.Add(stopEntry);
+        stepLeftEventTrigger.triggers.Add(moveLeftEntry);
+        stepLeftEventTrigger.triggers.Add(stopEntry);
+        stepRightEventTrigger.triggers.Add(moveRightEntry);
+        stepRightEventTrigger.triggers.Add(stopEntry);
     }
 
     void Update () {
-        if (Input.GetKeyDown(KeyCode.LeftArrow)) {
+        if (Input.GetKeyDown(KeyCode.Z)) {
             SwitchPrevGraphic();
-        } else if (Input.GetKeyDown(KeyCode.RightArrow)) {
+        } else if (Input.GetKeyDown(KeyCode.X)) {
             SwitchNextGraphic();
         }
     }

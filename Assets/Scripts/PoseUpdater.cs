@@ -5,15 +5,25 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class PoseUpdater : MonoBehaviour {
-    const int   idlingAnimationId = 19;
-    const float cameraZIndex      = 15.0f;
-    const float accuracyThreshold = 0.3f;
+    const int   idlingAnimationId   = 19;
+    const int   walkingAnimationId  = 6;
+    const float cameraZIndex        = 15.0f;
+    const float accuracyThreshold   = 0.3f;
+    const float forweardZConstraint = 10.0f;
+    const float backZConstraint     = 0.5f;
+    const float leftXConstraint     = -1.0f;
+    const float rightXConstraint    = 1.0f;
+    const float rightYRotation      = 50.0f;
+    const float leftYRotation       = -50.0f;
+
     Animator animator;
     PoseVector currentPoseVector;
     LessonRecorder lessonRecorder;
     PoseRecord poseRecord;
     bool isMoveForward;
     bool isMoveBack;
+    bool isMoveLeft;
+    bool isMoveRight;
 
     void Start () {
         animator = GetComponent<Animator>();
@@ -26,26 +36,54 @@ public class PoseUpdater : MonoBehaviour {
         if (Input.GetKeyDown(KeyCode.UpArrow)) {
             isMoveForward = false;
             isMoveBack    = true;
-        } else if (Input.GetKeyDown(KeyCode.DownArrow)) {
+        }
+        if (Input.GetKeyDown(KeyCode.DownArrow)) {
             isMoveForward = true;
             isMoveBack    = false;
-        } else if (Input.GetKeyUp(KeyCode.UpArrow)) {
+        }
+        if (Input.GetKeyDown(KeyCode.LeftArrow)) {
+            isMoveLeft    = false;
+            isMoveRight   = true;
+        }
+        if (Input.GetKeyDown(KeyCode.RightArrow)) {
+            isMoveLeft    = true;
+            isMoveRight   = false;
+        }
+
+        if (Input.GetKeyUp(KeyCode.UpArrow)) {
+            isMoveBack = false;
+        }
+        if (Input.GetKeyUp(KeyCode.DownArrow)) {
             isMoveForward = false;
-            isMoveBack    = false;
-        } else if (Input.GetKeyUp(KeyCode.DownArrow)) {
-            isMoveForward = false;
-            isMoveBack    = false;
+        }
+        if (Input.GetKeyUp(KeyCode.LeftArrow)) {
+            isMoveRight = false;
+        }
+        if (Input.GetKeyUp(KeyCode.RightArrow)) {
+            isMoveLeft = false;
         }
     }
 
     void FixedUpdate () {
-        Vector3 target = transform.position;
-
-        if (isMoveForward && transform.position.z <= 10.0f) {
-            target +=  Vector3.forward * 1.0f;
-        } else if (isMoveBack && transform.position.z >= 0.5f) {
-            target +=  Vector3.back * 1.0f;
+        if (isMoveForward || isMoveBack || isMoveLeft || isMoveRight) {
+            animator.SetInteger("animation", walkingAnimationId);
         } else {
+            animator.SetInteger("animation", idlingAnimationId);
+        }
+
+        Vector3 target = transform.position;
+        if (isMoveForward && transform.position.z <= forweardZConstraint) {
+            target +=  Vector3.forward * 1.0f;
+        } else if (isMoveBack && transform.position.z >= backZConstraint) {
+            target +=  Vector3.back * 1.0f;
+        } else if (isMoveLeft && transform.position.x >= leftXConstraint) {
+            target +=  Vector3.left * 0.02f;
+            transform.rotation = Quaternion.Euler(0f, leftYRotation, 0.0f);
+        } else if (isMoveRight && transform.position.x <= rightXConstraint) {
+            target +=  Vector3.right * 0.02f;
+            transform.rotation = Quaternion.Euler(0.0f, rightYRotation, 0.0f);
+        } else {
+            transform.rotation = Quaternion.Euler(0.0f, 0.0f, 0.0f);
             return;
         }
 
@@ -73,15 +111,21 @@ public class PoseUpdater : MonoBehaviour {
         switch(movingType) {
             case "startMovingForward":
                 isMoveForward = true;
-                isMoveBack    = false;
                 break;
             case "startMovingBack":
-                isMoveForward = false;
-                isMoveBack    = true;
+                isMoveBack = true;
+                break;
+            case "startMovingLeft":
+                isMoveLeft = true;
+                break;
+            case "startMovingRight":
+                isMoveRight = true;
                 break;
             case "stopMoving":
                 isMoveForward = false;
                 isMoveBack    = false;
+                isMoveLeft    = false;
+                isMoveRight   = false;
                 break;
             default:
                 break;

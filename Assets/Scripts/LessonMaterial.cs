@@ -11,7 +11,7 @@ public class LessonMaterial : MonoBehaviour {
     public List<string> graphicIds;
 
     string materialPath;
-    string lessonId;
+    string lessonID;
     const string jsonFileName = "lesson_material.json";
     Material material;
     Subject<Unit> loadSubject = new Subject<Unit>();
@@ -21,8 +21,9 @@ public class LessonMaterial : MonoBehaviour {
     }
 
     void Start () {
-        lessonId     = Application.absoluteURL.Split("?"[0])[1];
-        materialPath = Path.Combine(Application.persistentDataPath, lessonId);
+//        lessonID     = Application.absoluteURL.Split("?"[0])[1];
+        lessonID = "123";
+        materialPath = Path.Combine(Application.persistentDataPath, lessonID);
 
         string materialUrl = Application.absoluteURL.Replace("?", "") + "/materials.zip";
         StartCoroutine("DownloadMaterial", materialUrl);
