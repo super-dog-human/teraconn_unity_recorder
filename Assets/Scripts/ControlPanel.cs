@@ -9,11 +9,12 @@ public class ControlPanel : MonoBehaviour {
     PoseUpdater    poseUpdater;
     EmotionChanger emotionChanger;
 
-    Text recordingText;
+    Image recordingIcon;
     GameObject nextGraphicButton;
     GameObject prevGraphicButton;
     GameObject recButton;
     GameObject stopButton;
+    GameObject resumeButton;
     GameObject saveButton;
 
     void Start () {
@@ -25,7 +26,8 @@ public class ControlPanel : MonoBehaviour {
         poseUpdater    = kaoru.GetComponent<PoseUpdater>();
         emotionChanger = kaoru.GetComponent<EmotionChanger>();
 
-        recordingText = GameObject.Find("RecordingText").GetComponent<Text>();
+        recordingIcon = GameObject.Find("RecordingIcon").GetComponent<Image>();
+        ColorAlphaToZero(recordingIcon);
 
         nextGraphicButton = GameObject.Find("NextGraphicButton");
         nextGraphicButton.GetComponent<Button>().onClick.AddListener(SwitchNextGraphic);
@@ -41,6 +43,10 @@ public class ControlPanel : MonoBehaviour {
         stopButton = GameObject.Find("StopButton");
         stopButton.GetComponent<Button>().onClick.AddListener(StopRecording);
         stopButton.SetActive(false);
+
+        resumeButton = GameObject.Find("ResumeButton");
+        resumeButton.GetComponent<Button>().onClick.AddListener(ResumeRecording);
+        resumeButton.SetActive(false);
 
         saveButton = GameObject.Find("SaveButton");
         saveButton.GetComponent<Button>().onClick.AddListener(SaveRecord);
@@ -118,7 +124,7 @@ public class ControlPanel : MonoBehaviour {
     void Update () {
         if (Input.GetKeyDown(KeyCode.Z)) {
             SwitchPrevGraphic();
-        } else if (Input.GetKeyDown(KeyCode.X)) {
+        } else if (Input.GetKeyDown(KeyCode.C)) {
             SwitchNextGraphic();
         }
     }
@@ -138,37 +144,44 @@ public class ControlPanel : MonoBehaviour {
 
     void StartRecording () {
         recButton.SetActive(false);
-        saveButton.SetActive(false);
 
-        lessonRecorder.StartRecording();
+        if (!Debug.isDebugBuild) lessonRecorder.StartRecording();
 
-        ColorAlphaToMax(recordingText);
+        ColorAlphaToMax(recordingIcon);
         stopButton.SetActive(true);
     }
 
     void StopRecording () {
         stopButton.SetActive(false);
 
-        lessonRecorder.StopRecording();
+        if (!Debug.isDebugBuild) lessonRecorder.StopRecording();
 
-        ColorAlphaToZero(recordingText);
-        recButton.SetActive(true);
+        ColorAlphaToZero(recordingIcon);
+
+        resumeButton.SetActive(true);
         saveButton.SetActive(true);
     }
 
+    void ResumeRecording () {
+        StartRecording();
+        resumeButton.SetActive(false);
+        saveButton.SetActive(false);
+    }
+
     void SaveRecord () {
+        // show indicator
         lessonRecorder.Save();
     }
 
-    void ColorAlphaToZero (Text text) {
-        Color color = text.color;
+    void ColorAlphaToZero (Image image) {
+        Color color = image.color;
         color.a = 0;
-        text.color = color;
+        image.color = color;
     }
 
-    void ColorAlphaToMax (Text text) {
-        Color color = text.color;
+    void ColorAlphaToMax (Image image) {
+        Color color = image.color;
         color.a = 255;
-        text.color = color;
+        image.color = color;
     }
 }

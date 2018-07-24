@@ -15,6 +15,7 @@ public class LessonRecorder : MonoBehaviour {
     [DllImport("__Internal")]
     static extern void StopAudioRecording();
 
+    const string apiURL = "https://api.teraconnect.org";
     bool isRecording;
     float recordStartSec;
     float elapsedTimeSec = 0.0f;
@@ -143,7 +144,7 @@ public class LessonRecorder : MonoBehaviour {
 
         string jsonString = JsonUtility.ToJson(record);
         string lessonId = Application.absoluteURL.Split("?"[0])[1];
-        string url = string.Format("https://zygoptera.net/lessons/{0}/materials", lessonId);
+        string url = string.Format("{0}/lessons/{1}/materials", apiURL, lessonId);
         HTTPClient httpClient = GameObject.Find("ScriptLoader").GetComponent<HTTPClient>();
         httpClient.postJson(url, jsonString);
     }
