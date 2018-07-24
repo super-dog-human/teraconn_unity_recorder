@@ -128,10 +128,9 @@ public class LessonRecorder : MonoBehaviour {
     }
 
     void PostRecord () {
-        // sort timelineRecords by time
         LessonRecord record = new LessonRecord();
         record.durationSec  = elapsedTimeSec;
-        record.timelines    = timelineRecords;
+        record.timelines    = timelineRecords.OrderBy(t => t.timeSec).ToList();
         record.poses        = poseRecords;
         record.published    = System.DateTime.Now.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
         record.updated      = System.DateTime.Now.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
