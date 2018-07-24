@@ -138,22 +138,7 @@ public class PoseUpdater : MonoBehaviour {
     }
 
     void UpdateCoreBodyPosition () {
-        Vector3 rightShoulderPosition = currentPoseVector.rightShoulder.position;
-        rightShoulderPosition.z = cameraZIndex;
-        Vector3 worldRightShoulderPosition = Camera.main.ScreenToWorldPoint(rightShoulderPosition);
-
-        Vector3 leftShoulderPosition = currentPoseVector.leftShoulder.position;
-        leftShoulderPosition.z = cameraZIndex;
-        Vector3 worldLeftShoulderPosition = Camera.main.ScreenToWorldPoint(leftShoulderPosition);
-
-        Vector3 position = transform.position;
-        position.x = (worldRightShoulderPosition.x + worldLeftShoulderPosition.x) / 2 ;
-        Vector3 bodyPosition = Vector3.Lerp(transform.position, position, Time.deltaTime * 2);
-
-        if (transform.position == bodyPosition) return;
-
-        poseRecord.coreBody = bodyPosition;
-        transform.position = bodyPosition;
+        poseRecord.coreBody = transform.position;
     }
 
     void UpdateHeadPosition () {
