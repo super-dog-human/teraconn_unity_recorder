@@ -4,6 +4,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using UniRx;
 
 public class LessonRecorder : MonoBehaviour {
     [DllImport("__Internal")]
@@ -109,22 +110,15 @@ public class LessonRecorder : MonoBehaviour {
     }
 
     public void Save () {
-        if (timelineRecords.Count() == 0) {
-            return;
-        }
+        if (timelineRecords.Count() == 0) return;
 
         int incompletedVoiceCount = timelineRecords.Count(timeline => timeline.voice != null && timeline.voice.fileID == null);
         if (incompletedVoiceCount > 0) {
-            StartCoroutine("RetrySaveAfterSeconds", 1);
+            Observable.Timer(TimeSpan.FromSeconds(1)).Subscribe(_ => Save());
             return;
         }
 
         PostRecord();
-    }
-
-    IEnumerator RetrySaveAfterSeconds (int seconds) {
-        yield return new WaitForSeconds(seconds);
-        Save();
     }
 
     float CurrentTimeSec () {
@@ -147,11 +141,6 @@ public class LessonRecorder : MonoBehaviour {
         string url = string.Format("{0}/lessons/{1}/materials", apiURL, lessonId);
         HTTPClient httpClient = GameObject.Find("ScriptLoader").GetComponent<HTTPClient>();
         httpClient.postJson(url, jsonString);
-    }
-
-    void SaveCompleted () {
-        // dismiss loading indicator
-        //
     }
 }
 

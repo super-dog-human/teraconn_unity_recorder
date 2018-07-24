@@ -2,14 +2,18 @@
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UniRx;
+using DG.Tweening;
 
 public class ControlPanel : MonoBehaviour {
+    bool            isSaving;
     GraphicSwitcher graphicSwitcher;
-    LessonRecorder lessonRecorder;
-    PoseUpdater    poseUpdater;
-    EmotionChanger emotionChanger;
+    LessonRecorder  lessonRecorder;
+    PoseUpdater     poseUpdater;
+    EmotionChanger  emotionChanger;
 
     Image recordingIcon;
+    GameObject loadingPanel;
+    GameObject loadingCircle;
     GameObject nextGraphicButton;
     GameObject prevGraphicButton;
     GameObject recButton;
@@ -18,6 +22,12 @@ public class ControlPanel : MonoBehaviour {
     GameObject saveButton;
 
     void Start () {
+        DOTween.Init();
+
+        loadingPanel  = GameObject.Find("LoadingPanel");
+        loadingCircle = GameObject.Find("LoadingCircle");
+        loadingPanel.SetActive(false);
+
         GameObject scriptLoader = GameObject.Find("ScriptLoader");
         graphicSwitcher = scriptLoader.GetComponent<GraphicSwitcher>();
         lessonRecorder  = scriptLoader.GetComponent<LessonRecorder>();
@@ -127,6 +137,8 @@ public class ControlPanel : MonoBehaviour {
         } else if (Input.GetKeyDown(KeyCode.C)) {
             SwitchNextGraphic();
         }
+
+        if (isSaving) loadingCircle.transform.Rotate(0f, 0f, -1.0f * 1.5f, Space.World);
     }
 
     void SwitchNextGraphic () {
@@ -149,6 +161,7 @@ public class ControlPanel : MonoBehaviour {
 
         ColorAlphaToMax(recordingIcon);
         stopButton.SetActive(true);
+//        stopButton.GetComponent<Image>().DOFade(0.0f, 1.0f);
     }
 
     void StopRecording () {
@@ -157,7 +170,6 @@ public class ControlPanel : MonoBehaviour {
         if (!Debug.isDebugBuild) lessonRecorder.StopRecording();
 
         ColorAlphaToZero(recordingIcon);
-
         resumeButton.SetActive(true);
         saveButton.SetActive(true);
     }
@@ -169,7 +181,12 @@ public class ControlPanel : MonoBehaviour {
     }
 
     void SaveRecord () {
-        // show indicator
+        resumeButton.SetActive(false);
+        saveButton.SetActive(false);
+
+        loadingPanel.SetActive(true);
+        isSaving = true;
+
         lessonRecorder.Save();
     }
 

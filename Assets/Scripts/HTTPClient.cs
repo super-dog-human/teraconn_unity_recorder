@@ -23,6 +23,9 @@ public class HTTPClient : MonoBehaviour {
 
         if(request.isHttpError || request.isNetworkError) {
             Debug.Log(request.error);
+        } else {
+            string lessonID = Application.absoluteURL.Split("?"[0])[1];
+            Application.OpenURL("https://authoring.teraconnect.org/" + lessonID);
         }
     }
 }
