@@ -27,14 +27,25 @@ limitations under the License. -->
       gtag('config', 'UA-120790122-1');
     </script>
     <style>
+      #preview_guide {
+        display: inline-block;
+        display: relative;
+      }
+      #position_guide {
+        position: absolute;
+        z-index: 1;
+      }
       #video {
-        width: %UNITY_WIDTH%px;
-        height: %UNITY_HEIGHT%px;
         display: inline-block;
         -moz-transform: scaleX(-1);
         -o-transform: scaleX(-1);
         -webkit-transform: scaleX(-1);
         transform: scaleX(-1);
+      }
+      #pose_keypoint {
+        display: none;
+        width: %UNITY_WIDTH%px;
+        height: %UNITY_HEIGHT%px;
       }
       #gameContainer {
         width: %UNITY_WIDTH%px;
@@ -46,7 +57,11 @@ limitations under the License. -->
   </head>
 
   <body>
-    <video id="video" playsinline></video>
+    <div id="preview_guide">
+      <img src="./position_guide.png" id="position_guide"/>
+      <video id="video" playsinline></video>
+    </div>
+    <canvas id="pose_keypoint"></canvas>
     <div id="gameContainer"></div>
   </body>
 
