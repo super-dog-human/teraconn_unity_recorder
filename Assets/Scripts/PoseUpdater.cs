@@ -158,7 +158,7 @@ public class PoseUpdater : MonoBehaviour {
 
         Vector3 leftEyePosition  = animator.GetBoneTransform(HumanBodyBones.LeftEye).position;
         Vector3 rightEyePosition = animator.GetBoneTransform(HumanBodyBones.RightEye).position;
-        float eyeLength = (leftEyePosition - rightEyePosition).magnitude;
+        float eyeLength = Vector3.Distance(leftEyePosition, rightEyePosition);
 
         animator.SetLookAtWeight(1, 0.1f, 1f, 0.3f, 1f);
         Vector3 lookAtPosition = (leftEyePosition + rightEyePosition) / 2;
@@ -166,6 +166,7 @@ public class PoseUpdater : MonoBehaviour {
             lookAtPosition.x += eyeLength * xRatio;
         }
 
+        lookAtPosition.x *= -1.0f;
         poseRecord.lookAt = lookAtPosition;
         animator.SetLookAtPosition(lookAtPosition);
     }
@@ -194,54 +195,70 @@ public class PoseUpdater : MonoBehaviour {
     }
 
     void UpdateArmsPosition () {
-        // swap the left and right
-        SetWorldElbowPosition(currentPoseVector.leftElbow, AvatarIKHint.RightElbow);
-        SetWorldHandPosition(currentPoseVector.leftElbow, currentPoseVector.leftWrist, AvatarIKGoal.RightHand);
+        if (!IsShoulderAndWristScoreGood()) return;
 
-        SetWorldElbowPosition(currentPoseVector.rightElbow, AvatarIKHint.LeftElbow);
-        SetWorldHandPosition(currentPoseVector.rightElbow, currentPoseVector.rightWrist, AvatarIKGoal.LeftHand);
+        Transform boneLeftShoulder  = animator.GetBoneTransform(HumanBodyBones.LeftShoulder);
+        Transform boneRightShoulder = animator.GetBoneTransform(HumanBodyBones.RightShoulder);
+
+        Vector3 worldLeftShoulderPosition  = detectedPoseToWorldPosition(currentPoseVector.leftShoulder.position);
+        Vector3 worldRightShoulderPosition = detectedPoseToWorldPosition(currentPoseVector.rightShoulder.position);
+        float avatarShoulderWidth          = (boneLeftShoulder.position - boneRightShoulder.position).sqrMagnitude;
+        float detectedPoseShoulderWidth    = (worldLeftShoulderPosition - worldRightShoulderPosition).sqrMagnitude;
+        float detectedPoseRatio            = Mathf.Sqrt(avatarShoulderWidth / detectedPoseShoulderWidth) * 2.0f; // 2.0 is restrict over moving num.
+
+        Vector3 worldRightElbowPosition = detectedPoseToWorldPosition(currentPoseVector.rightElbow.position);
+        Vector3 worldLeftElbowPosition = detectedPoseToWorldPosition(currentPoseVector.leftElbow.position);
+        SetWorldElbowPosition(worldRightShoulderPosition, worldRightElbowPosition, boneLeftShoulder.position, detectedPoseRatio, AvatarIKHint.RightElbow);
+        SetWorldElbowPosition(worldLeftShoulderPosition, worldLeftElbowPosition, boneRightShoulder.position, detectedPoseRatio, AvatarIKHint.LeftElbow);
+
+        Vector3 worldRightHandPosition = detectedPoseToWorldPosition(currentPoseVector.rightWrist.position);
+        Vector3 worldLeftHandPosition = detectedPoseToWorldPosition(currentPoseVector.leftWrist.position);
+
+        SetWorldHandPosition(worldRightShoulderPosition, worldRightHandPosition, boneLeftShoulder.position, detectedPoseRatio, AvatarIKGoal.RightHand);
+        SetWorldHandPosition(worldLeftShoulderPosition, worldLeftHandPosition, boneRightShoulder.position, detectedPoseRatio, AvatarIKGoal.LeftHand);
     }
 
-    void SetWorldElbowPosition (PartVector elbowPart, AvatarIKHint avatarPart) {
-        if (elbowPart.score < accuracyThreshold) return;
+    bool IsShoulderAndWristScoreGood() {
+        float armAccuracyThreshold = 0.6f;
+        if (currentPoseVector.leftShoulder.score < armAccuracyThreshold)   { return false; }
+        if (currentPoseVector.leftWrist.score < armAccuracyThreshold)      { return false; }
+        if (currentPoseVector.rightShoulder.score < armAccuracyThreshold)  { return false; }
+        if (currentPoseVector.rightWrist.score < armAccuracyThreshold)     { return false; }
+        return true;
+    }
 
-        Vector3 position = elbowPart.position;
-        position.z = cameraZIndex;
-        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(position);
-        worldPosition.z = animator.GetIKHintPosition(avatarPart).z;
+    void SetWorldElbowPosition (Vector3 detectedShoulderPosition, Vector3 detectedElbowPosition, Vector3 bonePosition, float poseRatio, AvatarIKHint avatarPart) {
+        Vector3 elbowPositionDiff = detectedElbowPosition - detectedShoulderPosition;
+        Vector3 newElbowPosition = bonePosition + (elbowPositionDiff / poseRatio);
 
         animator.SetIKHintPositionWeight(avatarPart, 1);
-        animator.SetIKHintPosition(avatarPart, worldPosition);
+        animator.SetIKHintPosition(avatarPart, newElbowPosition);
 
         if (avatarPart == AvatarIKHint.LeftElbow) {
-            poseRecord.leftElbow  = worldPosition;
+            poseRecord.leftElbow  = newElbowPosition;
         } else {
-            poseRecord.rightElbow = worldPosition;
+            poseRecord.rightElbow = newElbowPosition;
         }
     }
 
-    void SetWorldHandPosition (PartVector elbowPart, PartVector wristPart, AvatarIKGoal avatarPart) {
-        if (wristPart.score < accuracyThreshold) return;
-
-        Vector3 position = HandPosition(elbowPart.position, wristPart.position);
-        position.z = cameraZIndex;
-        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(position);
-        worldPosition.z = animator.GetIKPosition(avatarPart).z;
+    void SetWorldHandPosition (Vector3 detectedShoulderPosition, Vector3 detectedHandPosition, Vector3 bonePosition, float poseRatio, AvatarIKGoal avatarPart) {
+        Vector3 handPositionDiff = detectedHandPosition - detectedShoulderPosition;
+        Vector3 newHandPosition = bonePosition + (handPositionDiff / poseRatio);
 
         animator.SetIKPositionWeight(avatarPart, 1);
-        animator.SetIKPosition(avatarPart, worldPosition);
+        animator.SetIKPosition(avatarPart, newHandPosition);
 
         if(avatarPart == AvatarIKGoal.LeftHand) {
-            poseRecord.leftHand  = worldPosition;
+            poseRecord.leftHand  = newHandPosition;
         } else {
-            poseRecord.rightHand = worldPosition;
+            poseRecord.rightHand = newHandPosition;
         }
     }
 
-    Vector3 HandPosition (Vector3 elbowPosition, Vector3 wristPosition) {
-        float armLength = (wristPosition - elbowPosition).magnitude;
-        Vector3 handVector = (wristPosition - elbowPosition).normalized * armLength * 0.5f;
-        return wristPosition + handVector;
+    Vector3 detectedPoseToWorldPosition (Vector3 detectedPose) {
+        detectedPose.x = 640 - detectedPose.x; // detected pose in canvas is flipped.
+        detectedPose.z += Camera.main.transform.position.z;
+        return Camera.main.ScreenToWorldPoint(detectedPose);
     }
 
     public class PoseVector {
