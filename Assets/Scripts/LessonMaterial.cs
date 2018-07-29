@@ -21,7 +21,8 @@ public class LessonMaterial : MonoBehaviour {
     }
 
     void Start () {
-        lessonID     = Debug.isDebugBuild ? "123" : Application.absoluteURL.Split("?"[0])[1];
+        if (Debug.isDebugBuild) return;
+        lessonID     = Application.absoluteURL.Split("?"[0])[1];
         materialPath = Path.Combine(Application.persistentDataPath, lessonID);
 
         string materialUrl = Application.absoluteURL.Replace("?", "") + "/materials.zip";
