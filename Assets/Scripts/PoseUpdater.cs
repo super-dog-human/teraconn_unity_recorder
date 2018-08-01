@@ -5,16 +5,17 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class PoseUpdater : MonoBehaviour {
-    const int   idlingAnimationId   = 19;
-    const int   walkingAnimationId  = 6;
-    const float cameraZIndex        = 15.0f;
-    const float accuracyThreshold   = 0.3f;
-    const float forweardZConstraint = 10.0f;
-    const float backZConstraint     = 0.5f;
-    const float leftXConstraint     = -1.0f;
-    const float rightXConstraint    = 1.0f;
-    const float rightYRotation      = 50.0f;
-    const float leftYRotation       = -50.0f;
+    const int   idlingAnimationId    = 19;
+    const int   walkingAnimationId   = 6;
+    const float cameraZIndex         = 15.0f;
+    const float accuracyThreshold    = 0.3f;
+    const float armAccuracyThreshold = 0.6f;
+    const float forweardZConstraint  = 10.0f;
+    const float backZConstraint      = 0.5f;
+    const float leftXConstraint      = -1.0f;
+    const float rightXConstraint     = 1.0f;
+    const float rightYRotation       = 50.0f;
+    const float leftYRotation        = -50.0f;
 
     Animator animator;
     PoseVector currentPoseVector;
@@ -195,8 +196,6 @@ public class PoseUpdater : MonoBehaviour {
     }
 
     void UpdateArmsPosition () {
-        if (!IsShoulderAndWristScoreGood()) return;
-
         Transform boneLeftShoulder  = animator.GetBoneTransform(HumanBodyBones.LeftShoulder);
         Transform boneRightShoulder = animator.GetBoneTransform(HumanBodyBones.RightShoulder);
 
@@ -204,27 +203,27 @@ public class PoseUpdater : MonoBehaviour {
         Vector3 worldRightShoulderPosition = detectedPoseToWorldPosition(currentPoseVector.rightShoulder.position);
         float avatarShoulderWidth          = (boneLeftShoulder.position - boneRightShoulder.position).sqrMagnitude;
         float detectedPoseShoulderWidth    = (worldLeftShoulderPosition - worldRightShoulderPosition).sqrMagnitude;
-        float detectedPoseRatio            = Mathf.Sqrt(avatarShoulderWidth / detectedPoseShoulderWidth) * 2.0f; // 2.0 is restrict over moving num.
+        float detectedPoseRatio            = Mathf.Sqrt(avatarShoulderWidth / detectedPoseShoulderWidth) * 2.0f; // 2.0 for restrict too moving arms.
 
-        Vector3 worldRightElbowPosition = detectedPoseToWorldPosition(currentPoseVector.rightElbow.position);
-        Vector3 worldLeftElbowPosition = detectedPoseToWorldPosition(currentPoseVector.leftElbow.position);
-        SetWorldElbowPosition(worldRightShoulderPosition, worldRightElbowPosition, boneLeftShoulder.position, detectedPoseRatio, AvatarIKHint.RightElbow);
-        SetWorldElbowPosition(worldLeftShoulderPosition, worldLeftElbowPosition, boneRightShoulder.position, detectedPoseRatio, AvatarIKHint.LeftElbow);
+        if (currentPoseVector.rightElbow.score >= armAccuracyThreshold) {
+            Vector3 worldRightElbowPosition = detectedPoseToWorldPosition(currentPoseVector.rightElbow.position);
+            SetWorldElbowPosition(worldRightShoulderPosition, worldRightElbowPosition, boneLeftShoulder.position, detectedPoseRatio, AvatarIKHint.RightElbow);
+        }
 
-        Vector3 worldRightHandPosition = detectedPoseToWorldPosition(currentPoseVector.rightWrist.position);
-        Vector3 worldLeftHandPosition = detectedPoseToWorldPosition(currentPoseVector.leftWrist.position);
+        if (currentPoseVector.leftElbow.score >= armAccuracyThreshold) {
+            Vector3 worldLeftElbowPosition = detectedPoseToWorldPosition(currentPoseVector.leftElbow.position);
+            SetWorldElbowPosition(worldLeftShoulderPosition, worldLeftElbowPosition, boneRightShoulder.position, detectedPoseRatio, AvatarIKHint.LeftElbow);
+        }
 
-        SetWorldHandPosition(worldRightShoulderPosition, worldRightHandPosition, boneLeftShoulder.position, detectedPoseRatio, AvatarIKGoal.RightHand);
-        SetWorldHandPosition(worldLeftShoulderPosition, worldLeftHandPosition, boneRightShoulder.position, detectedPoseRatio, AvatarIKGoal.LeftHand);
-    }
+        if (currentPoseVector.rightWrist.score >= armAccuracyThreshold) {
+            Vector3 worldRightHandPosition = detectedPoseToWorldPosition(currentPoseVector.rightWrist.position);
+            SetWorldHandPosition(worldRightShoulderPosition, worldRightHandPosition, boneLeftShoulder.position, detectedPoseRatio, AvatarIKGoal.RightHand);
+        }
 
-    bool IsShoulderAndWristScoreGood() {
-        float armAccuracyThreshold = 0.6f;
-        if (currentPoseVector.leftShoulder.score < armAccuracyThreshold)   { return false; }
-        if (currentPoseVector.leftWrist.score < armAccuracyThreshold)      { return false; }
-        if (currentPoseVector.rightShoulder.score < armAccuracyThreshold)  { return false; }
-        if (currentPoseVector.rightWrist.score < armAccuracyThreshold)     { return false; }
-        return true;
+        if (currentPoseVector.leftWrist.score >= armAccuracyThreshold) {
+            Vector3 worldLeftHandPosition = detectedPoseToWorldPosition(currentPoseVector.leftWrist.position);
+            SetWorldHandPosition(worldLeftShoulderPosition, worldLeftHandPosition, boneRightShoulder.position, detectedPoseRatio, AvatarIKGoal.LeftHand);
+        }
     }
 
     void SetWorldElbowPosition (Vector3 detectedShoulderPosition, Vector3 detectedElbowPosition, Vector3 bonePosition, float poseRatio, AvatarIKHint avatarPart) {
