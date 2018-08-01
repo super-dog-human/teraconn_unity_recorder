@@ -12,6 +12,7 @@ public class LessonMaterial : MonoBehaviour {
 
     string materialPath;
     string lessonID;
+    string materialURL;
     const string jsonFileName = "lesson_material.json";
     Material material;
     Subject<Unit> loadSubject = new Subject<Unit>();
@@ -20,17 +21,23 @@ public class LessonMaterial : MonoBehaviour {
         get { return loadSubject; }
     }
 
-    void Start () {
-        if (Debug.isDebugBuild) return;
-        lessonID     = Application.absoluteURL.Split("?"[0])[1];
-        materialPath = Path.Combine(Application.persistentDataPath, lessonID);
-
-        string materialUrl = Application.absoluteURL.Replace("?", "") + "/materials.zip";
-        StartCoroutine("DownloadMaterial", materialUrl);
+    public void SetMaterialURL (string url) {
+        materialURL = url;
     }
 
-    IEnumerator DownloadMaterial (string url) {
-        using (WWW www = new WWW(url)) {
+    void Start () {
+        if (Debug.isDebugBuild) return;
+
+        lessonID = Application.absoluteURL.Split('?')[1];// TODO change "?" to "/"
+//        materialURL =  Application.absoluteURL.Replace("?", "") + "/materials.zip";;
+        materialURL = $"https://storage.googleapis.com/demo_teraconnect/{lessonID}/materials.zip"; // FIXME
+        materialPath = Path.Combine(Application.persistentDataPath, lessonID);
+
+        StartCoroutine("DownloadMaterial");
+    }
+
+    IEnumerator DownloadMaterial () {
+        using (WWW www = new WWW(materialURL)) {
             yield return www;
 
             if (www.error.Length > 0) {
