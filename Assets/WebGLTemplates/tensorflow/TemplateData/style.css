@@ -1,0 +1,43 @@
+.webgl-content .logo, .progress {position: absolute; left: 50%; top: 50%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%);}
+.webgl-content .logo {background: url('progressLogo.Light.png') no-repeat center / contain; width: 154px; height: 130px;}
+.webgl-content .progress {height: 18px; width: 141px; margin-top: 90px;}
+.webgl-content .progress .empty {background: url('progressEmpty.Light.png') no-repeat right / cover; float: right; width: 100%; height: 100%; display: inline-block;}
+.webgl-content .progress .full {background: url('progressFull.Light.png') no-repeat left / cover; float: left; width: 0%; height: 100%; display: inline-block;}
+
+.webgl-content .logo.Dark {background-image: url('progressLogo.Dark.png');}
+.webgl-content .progress.Dark .empty {background-image: url('progressEmpty.Dark.png');}
+.webgl-content .progress.Dark .full {background-image: url('progressFull.Dark.png');}
+
+#preview_guide {
+    display: inline-block;
+    display: relative;
+    width: 640px;
+    height: 480px;
+  }
+#position_guide {
+    position: absolute;
+    margin: 0px;
+    z-index: 1;
+}
+#video {
+    width: 640px;
+    height: 480px;
+    display: inline-block;
+    -moz-transform: scaleX(-1);
+    -o-transform: scaleX(-1);
+    -webkit-transform: scaleX(-1);
+    transform: scaleX(-1);
+}
+#pose_keypoint {
+    display: none;
+    width: 640px;
+    height: 480px;
+}
+.webgl-content {
+    display: inline-block;
+}
+#gameContainer {
+    width: 640px;
+    height: 480px;
+    margin: auto;
+}
