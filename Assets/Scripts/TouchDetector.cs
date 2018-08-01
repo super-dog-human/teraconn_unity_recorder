@@ -20,6 +20,9 @@ public class TouchDetector : MonoBehaviour {
     }
 
     public void initButtons () {
+        nextButton = GameObject.Find("NextGraphicButton");
+        prevButton = GameObject.Find("PrevGraphicButton");
+
         nextButtonBottomLeftEnd = nextButton.GetComponent<Button>().transform.position;
         prevButtonBottomLeftEnd = prevButton.GetComponent<Button>().transform.position;
 
@@ -66,6 +69,7 @@ public class TouchDetector : MonoBehaviour {
     bool IsPositionInRange (Vector2 targetPosition, bool isNext) {
         Vector2 leftEndPosition;
         Vector2 rightEndPosition;
+
         if (isNext) {
             leftEndPosition  = nextButtonBottomLeftEnd;
             rightEndPosition = nextButtonTopRightEnd;

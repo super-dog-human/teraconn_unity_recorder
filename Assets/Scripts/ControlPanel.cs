@@ -70,7 +70,7 @@ public class ControlPanel : MonoBehaviour {
             nextGraphicButton.SetActive(true);
             prevGraphicButton.SetActive(true);
 
-            TouchDetector touchDetector = scriptLoader.GetComponent<TouchDetector>();
+            TouchDetector touchDetector = kaoru.GetComponent<TouchDetector>();
             touchDetector.initButtons();
         });
 
